@@ -1,0 +1,143 @@
+
+#I type the code until the error appears.Please,thanks.
+
+R version 3.1.3 (2015-03-09) -- "Smooth Sidewalk"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> setwd("G:/My-job/GitHub/ML_for_Hackers/03-Classification")
+> 
+> library('tm')
+Loading required package: NLP
+> library('ggplot2')
+
+Attaching package: ‘ggplot2’
+
+The following object is masked from ‘package:NLP’:
+
+    annotate
+
+> spam.path <- file.path("data", "spam")
+> spam2.path <- file.path("data", "spam_2")
+> easyham.path <- file.path("data", "easy_ham")
+> easyham2.path <- file.path("data", "easy_ham_2")
+> hardham.path <- file.path("data", "hard_ham")
+> hardham2.path <- file.path("data", "hard_ham_2")
+> x <- runif(1000, 0, 40)
+> y1 <- cbind(runif(100, 0, 10), 1)
+> y2 <- cbind(runif(800, 10, 30), 2)
+> y3 <- cbind(runif(100, 30, 40), 1)
+> val <- data.frame(cbind(x, rbind(y1, y2, y3)),
++                   stringsAsFactors = TRUE)
+> ex1 <- ggplot(val, aes(x, V2)) +
++   geom_jitter(aes(shape = as.factor(V3)),
++                   position = position_jitter(height = 2)) +
++   scale_shape_discrete(guide = "none", solid = FALSE) +
++   geom_hline(aes(yintercept = c(10,30)), linetype = 2) +
++   theme_bw() +
++   xlab("X") +
++   ylab("Y")
+> ggsave(plot = ex1,
++        filename = file.path("images", "00_Ex1.pdf"),
++        height = 10,
++        width = 10)
+> 
+> get.msg <- function(path)
++ {
++   con <- file(path, open = "rt", encoding = "latin1")
++   text <- readLines(con)
++   # The message always begins after the first full line break
++   msg <- text[seq(which(text == "")[1] + 1, length(text), 1)]
++   close(con)
++   return(paste(msg, collapse = "\n"))
++ }
+> get.tdm <- function(doc.vec)
++ {
++   control <- list(stopwords = TRUE,
++                   removePunctuation = TRUE,
++                   removeNumbers = TRUE,
++                   minDocFreq = 2)
++   doc.corpus <- Corpus(VectorSource(doc.vec))
++   doc.dtm <- TermDocumentMatrix(doc.corpus, control)
++   return(doc.dtm)
++ }
+> # This function takes a file path to an email file and a string, 
+> count.word <- function(path, term)
++ {
++   msg <- get.msg(path)
++   msg.corpus <- Corpus(VectorSource(msg))
++   # Hard-coded TDM control
++   control <- list(stopwords = TRUE,
++                   removePunctuation = TRUE,
++                   removeNumbers = TRUE)
++   msg.tdm <- TermDocumentMatrix(msg.corpus, control)
++   word.freq <- rowSums(as.matrix(msg.tdm))
++   term.freq <- word.freq[which(names(word.freq) == term)]
++   # We use ifelse here because term.freq = NA if nothing is found
++   return(ifelse(length(term.freq) > 0, term.freq, 0))
++ }
+> classify.email <- function(path, training.df, prior = 0.5, c = 1e-6)
++ {
++   # Here, we use many of the support functions to get the
++   # email text data in a workable format
++   msg <- get.msg(path)
++   msg.tdm <- get.tdm(msg)
++   msg.freq <- rowSums(as.matrix(msg.tdm))
++   # Find intersections of words
++   msg.match <- intersect(names(msg.freq), training.df$term)
++   # Now, we just perform the naive Bayes calculation
++   if(length(msg.match) < 1)
++   {
++     return(prior * c ^ (length(msg.freq)))
++   }
++   else
++   {
++     match.probs <- training.df$occurrence[match(msg.match, training.df$term)]
++     return(prior * prod(match.probs) * c ^ (length(msg.freq) - length(msg.match)))
++   }
++ }
+> 
+> 
+> spam.docs <- dir(spam.path)
+> 
+# Now,I type the spam.docs to check if there is something wrong with the dataframe spam.docs ,but it is right.
+> spam.docs <- spam.docs[which(spam.docs != "cmds")]
+> head(spam.docs)
+[1] "00001.7848dde101aa985090474a91ec93fcf0"
+[2] "00002.d94f1b97e48ed3b553b3508d116e6a09"
+[3] "00003.2ee33bc6eacdb11f38d052c44819ba6c"
+[4] "00004.eac8de8d759b7e74154f142194282724"
+[5] "00005.57696a39d7d84318ce497886896bf90d"
+[6] "00006.5ab5620d3d7c6c0db76234556a16f6c1"
+
+#Now,I run the code below,some errors appear,why.? 
+> all.spam <- sapply(spam.docs,
++                    function(p) get.msg(file.path(spam.path, p)))
+Error in seq.default(which(text == "")[1] + 1, length(text), 1) : 
+  'from' cannot be NA, NaN or infinite
+In addition: Warning messages:
+1: In readLines(con) :
+  invalid input found on input connection 'data/spam/00006.5ab5620d3d7c6c0db76234556a16f6c1'
+2: In readLines(con) :
+  invalid input found on input connection 'data/spam/00009.027bf6e0b0c4ab34db3ce0ea4bf2edab'
+3: In readLines(con) :
+  invalid input found on input connection 'data/spam/00035.7ce3307b56dd90453027a6630179282e'
+4: In readLines(con) :
+  incomplete final line found on 'data/spam/00035.7ce3307b56dd90453027a6630179282e'
+> 
